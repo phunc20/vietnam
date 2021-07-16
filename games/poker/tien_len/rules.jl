@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.21
+# v0.15.0
 
 using Markdown
 using InteractiveUtils
@@ -9,7 +9,8 @@ begin
   using Pkg
   # .julia_env/ is in the root dir of this repo
   Pkg.activate("../../../../.julia_env/oft")
-  Pkg.add("PlutoUI")
+  #Pkg.add("PlutoUI")
+  using PlutoUI
   #using Cards
   #using TikzPictures
 end
@@ -44,12 +45,19 @@ md"""
 在我所在的家庭裏, tới trắng 發生在以下這兩種手牌裏:
 
 1. 四張 `2` 都落在自己手裏
-2. 13 張手牌的數字都不一樣, i.e. `A`, `2`, `3`, ..., `Q`, `K`. (以下簡稱這個叫 `13張`)
+2. 13 張手牌的數字都不一樣, i.e. `A`, `2`, `3`, ..., `Q`, `K`. (以下簡稱這個叫 `順子`)
     - 花色不用相同
-    - 花色就算相同似乎也沒比較大: 如果有數人同時拿到 `13張`, 似乎就比較誰拿到最大的老二, 僅此而已.
-3. 六對(**sáu đôi**), e.g. 一對 `3, 4, 7, 9, J, A`, 共 12 張.
+    - 花色就算相同似乎也沒比較大: 如果有數人同時拿到 `順子`, 似乎就比較誰拿到最大的老二, 僅此而已.
+3. 六對(**sáu đôi**), e.g. 一對 `3, 4, 7, 9, J, A`, 共 12 張, 剩下最後一張任意.
 
-**註.** 上述兩種情境不會同時發生, 因爲一旦有人拿了全部的 `2`, 就不可能另外有人蒐集到 `13張`了.
+**註.** 以上情境有些不會同時發生在同一局的不同玩家手上.
+
+- `(1, 2)` 不會同時發生, 因爲一旦有人拿了全部的 `2`, 就不可能另外有人蒐集到 `13張`了.
+- `(2, 3)` 不會同時發生, 理由類似.
+- `(1, 1)` 不會同時發生, 理由顯然.
+- `(1, 3), (2, 2), (3, 3)` 可以同時發生.
+    - `(1, 3)` 同時發生時, `1 > 3`.
+    - `(3, 3)` 同時發生時, 大概就看誰的最大的一對比較大吧.
 """
 
 # ╔═╡ ce2c6fd6-e3e8-11eb-1027-7b2798e55261
@@ -64,7 +72,7 @@ md"""
 Ok, 如果同意以上的觀點的話, 那我們就有
 ```math
 \mathbb{P}(\texttt{四張 2}) =
-\frac{\begin{pmatrix} 52-4 \\ 9 \end{pmatrix}}
+\frac{\begin{pmatrix} 52-4 \\ 13-4 \end{pmatrix}}
 {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} =
 \frac{\frac{48!}{9!\,39!}}{\frac{52!}{13!\,39!}} =
 \frac{48!\,13!}{9!\,52!} =
@@ -78,13 +86,16 @@ Ok, 如果同意以上的觀點的話, 那我們就有
 Vector(10:13)
 
 # ╔═╡ cdd68328-e3e8-11eb-2e7b-a7ac3e2dffba
-# 真正的機率值應該介在 1 / 4^4 和 1 / 5^4 之間
-prod(10:13) / prod(49:52), 1 / 625, 1 / 4^4
+begin
+  # 真正的機率值應該介在 1 / 4^4 和 1 / 5^4 之間
+  四張2 = prod(10:13) / prod(49:52)
+  四張2, 1 / 625, 1 / 4^4
+end
 
 # ╔═╡ 6da55f80-e3f5-11eb-3030-4f365bb9e780
 md"""
 ```math
-\mathbb{P}(\texttt{13 張}) =
+\mathbb{P}(\texttt{順子}) =
 \frac{4^{13}}
 {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} =
 \frac{4^{13}}
@@ -96,7 +107,7 @@ md"""
 
 我們可以作個粗略的估計:
 ```math
-\mathbb{P}(\texttt{13 張}) \approx
+\mathbb{P}(\texttt{順子}) \approx
 \frac{4^{13}}
 {4\cdot \quad\cdots\quad \cdot9\cdot 13\cdot 20\cdot 40}
 ```
@@ -106,11 +117,182 @@ md"""
 Vector(10:-1:7)
 
 # ╔═╡ f9100ef4-e3f4-11eb-1626-2191ee70471d
-4^13 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+順子 = 4^13 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+
+# ╔═╡ 4ffd7300-bc5c-4470-a2b8-997d76ce98a5
+md"""
+(順子) 的機率出乎意料之外的高出 (四張 2) 很多. 這令我們有點好奇, 同花順的機率:
+"""
 
 # ╔═╡ a72a674e-e3f7-11eb-14ac-f9526786544d
 # Thồng hoa sảng 同花順
-4 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+同花順 = 4 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+
+# ╔═╡ c3234b24-20ce-4299-8226-d2715bce29ee
+md"""
+接着我們算 (六對) 的機率.
+
+其實有一個點我們剛纔沒有討論: (六對) 需要
+
+- 六對不同數字, e.g. `1,1,3,3,7,7,8,8,10,10,Q,Q`?
+- 還是六對可以重複數字, e.g. `3,3,3,3,8,8,9,9,J,J,K,K`?
+
+我們兩個機率都會計算, 但是真實玩的時候, 似乎是
+> 六對數字可以重複.
+
+"""
+
+# ╔═╡ e5c3b77c-4ee0-40ad-a5cb-fac52bc89660
+md"""
+```math
+\begin{align}
+  \mathbb{P}(\text{六對不重複}) &=
+  \frac{
+    \begin{pmatrix} 13 \\ 6 \end{pmatrix}
+    \cdot
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}^6
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} =
+  \frac{
+    \begin{pmatrix} 13 \\ 6 \end{pmatrix}
+    \cdot
+    6^6
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} \\
+
+  \mathbb{P}(\text{六對}) &=
+  \mathbb{P}(\text{六對不重複}) +
+
+\end{align}
+```
+"""
+
+# ╔═╡ d8ac100f-0ea1-4ed4-949d-23adc12ff13d
+function choose(n, k)
+  #return prod(n:-1:n-k+1) / prod(1:k)
+  return prod([(n-i+1)/i for i in 1:k])
+end
+
+# ╔═╡ e72e1ab8-f5e3-434a-8bb5-3f6a2759e6c9
+# A quick unit test for choose(): Pascal triangle
+with_terminal() do
+  for n in 2:6
+    println([choose(n,k) for k in 0:n])
+  end
+end
+
+# ╔═╡ 8c503032-dc96-40eb-b15b-4b7e17582878
+typeof(prod(1:10))
+
+# ╔═╡ fa032329-f986-4981-b19e-38d597788b08
+md"""
+**註.**$(HTML("<br>"))
+上面第一個 implementation (i.e. `choose` 函數的第一行) 看似
+**_天真無邪_**, 甚至 **_正確_**. $(HTML("<br>"))
+實際上, 卻是一個重大的 bug 來源.
+
+原因是
+> 分子或分母裏的 `prod()` 的 return type 是 `Int64`.
+>
+> 但是 `prod()` 很容易就超過 `Int64` 的上限, 造成 return value 繞一圈回到負值 (俗稱 overflow), 最後計算的結果就錯誤了.
+"""
+
+# ╔═╡ a28716b9-a5b5-42ea-a1c6-9bfb28afcd6a
+md"""
+舉例來說, 如果我們用這個錯誤的 implementation 來算 ``\;\mathbb{P}(\text{四張 2})\;`` 的話, 我們會得到:
+
+(還記得 $\quad\mathbb{P}(\texttt{四張 2}) =
+\frac{\begin{pmatrix} 48 \\ 9 \end{pmatrix}}
+{\begin{pmatrix} 52 \\ 13 \end{pmatrix}}\quad$ 嗎?)
+"""
+
+# ╔═╡ 3aa85ef5-70b3-4b1a-a9f0-90621aece45e
+function choose_wrong(n, k)
+  return prod(n:-1:n-k+1) / prod(1:k)
+end
+
+# ╔═╡ 98590253-95ec-4c43-9fc2-9fbc74a7e9c9
+choose_wrong(48, 9) / choose_wrong(52, 13)
+
+# ╔═╡ c15ef6a8-ae04-448d-8aae-9142c6bf9d20
+md"""
+我們得到 **大於 ``1`` 的機率**``\;``!! 這顯然出錯了.
+
+讓我們仔細檢查看看是哪裏出錯的:
+"""
+
+# ╔═╡ 10a2e952-5ceb-448e-b79e-e7dc422870e3
+choose_wrong(48, 9), choose_wrong(52, 13)
+
+# ╔═╡ e61e56a3-2f3d-42b5-8f7a-a6e12aa1013c
+md"""
+既然我們懷疑 overflow, 那我們就得要舉證 overflow 確實有發生.
+"""
+
+# ╔═╡ ca012485-fe78-4d6b-af4a-c9bcd9949948
+typemax(Int64), typemin(Int64), 2^63 - 1
+
+# ╔═╡ 0d95b3cd-4ed6-4138-9d5b-e57b64c695e0
+prod(52:-1:52-12), prod(big(52):-1:big(52-12))
+
+# ╔═╡ e42d96d7-2592-4369-9e54-66556f030acd
+prod(1:13), prod(big(1):big(13))
+
+# ╔═╡ d4f12300-a6d2-4938-a476-1d9c23d86805
+prod(48:-1:49-8), prod(big(48):-1:big(49-8))
+
+# ╔═╡ 83219d9d-7628-436b-b858-8ba324c0cfdd
+md"""
+看上去這個樣子, 對於 ``\mathbb{P}(\text{四張 2})`` 的計算, 只有 ``52 \cdot 51 \cdot \;\cdots\; \cdot 40`` 被 overflow 而已
+"""
+
+# ╔═╡ 700d4846-70bc-46e8-99a9-a111ab5ea760
+two64 = big(2)^64  # Note that big(2^64) is no good because it equals big(0)
+
+# ╔═╡ 215a3d40-b740-4331-b98c-e9eb120ed83b
+two63 = two64 ÷ 2
+
+# ╔═╡ 96b79d90-353d-4461-8027-b1698202b7b9
+begin
+  prod_52_til_40 = prod(big(52):-1:big(52-12)) % two64
+  if prod_52_til_40 >= two63
+    prod_52_til_40 -= two63
+  end
+  prod_52_til_40 == prod(52:-1:(52-12))
+end
+
+# ╔═╡ 0cc82603-dbda-475c-a0ba-39afefc94c0d
+md"""
+上面我們使用數值方法證明 overflow, 這裏我們再試着用數學看看估計不估計得出一致的結果:
+
+```math
+52\cdot 51\cdot \;\cdots\; \cdot 41 \cdot 40 \ge
+40^{13} \ge
+32^{13} =
+(2^{5})^{13} =
+2^{65} \gt
+2^{63}
+```
+
+這個簡略的估計使我們看到確實 overflow 有發生.
+"""
+
+# ╔═╡ a458e909-4af7-42fb-9bfb-e588b348f4fc
+md"""
+讓我們繼續對於 ``\mathbb{P}(\text{六對(不重複)})`` 的計算:
+"""
+
+# ╔═╡ e76e5b34-70ef-4a16-b400-c44cc9f59ddc
+六對 = 
+
+# ╔═╡ 4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
+六對不重複 = (choose(13, 6) * 6^6) / choose(52, 13)
+
+# ╔═╡ 0848edf2-6a25-4697-ade0-e76968dd5146
+sort
+
+# ╔═╡ e4cb72c1-be43-45bb-85b6-2c5b507d40a6
+
 
 # ╔═╡ Cell order:
 # ╠═bf67b80e-e3e6-11eb-203d-2965a14e546f
@@ -120,7 +302,34 @@ Vector(10:-1:7)
 # ╠═ce2c6fd6-e3e8-11eb-1027-7b2798e55261
 # ╠═2354387c-e3f3-11eb-2266-174bd65db60f
 # ╠═cdd68328-e3e8-11eb-2e7b-a7ac3e2dffba
-# ╟─6da55f80-e3f5-11eb-3030-4f365bb9e780
+# ╠═6da55f80-e3f5-11eb-3030-4f365bb9e780
 # ╠═076523e0-e3f5-11eb-14d0-73979c18b332
 # ╠═f9100ef4-e3f4-11eb-1626-2191ee70471d
+# ╟─4ffd7300-bc5c-4470-a2b8-997d76ce98a5
 # ╠═a72a674e-e3f7-11eb-14ac-f9526786544d
+# ╟─c3234b24-20ce-4299-8226-d2715bce29ee
+# ╠═e5c3b77c-4ee0-40ad-a5cb-fac52bc89660
+# ╠═d8ac100f-0ea1-4ed4-949d-23adc12ff13d
+# ╠═e72e1ab8-f5e3-434a-8bb5-3f6a2759e6c9
+# ╠═8c503032-dc96-40eb-b15b-4b7e17582878
+# ╟─fa032329-f986-4981-b19e-38d597788b08
+# ╠═a28716b9-a5b5-42ea-a1c6-9bfb28afcd6a
+# ╠═3aa85ef5-70b3-4b1a-a9f0-90621aece45e
+# ╠═98590253-95ec-4c43-9fc2-9fbc74a7e9c9
+# ╟─c15ef6a8-ae04-448d-8aae-9142c6bf9d20
+# ╠═10a2e952-5ceb-448e-b79e-e7dc422870e3
+# ╟─e61e56a3-2f3d-42b5-8f7a-a6e12aa1013c
+# ╠═ca012485-fe78-4d6b-af4a-c9bcd9949948
+# ╠═0d95b3cd-4ed6-4138-9d5b-e57b64c695e0
+# ╠═e42d96d7-2592-4369-9e54-66556f030acd
+# ╠═d4f12300-a6d2-4938-a476-1d9c23d86805
+# ╟─83219d9d-7628-436b-b858-8ba324c0cfdd
+# ╠═700d4846-70bc-46e8-99a9-a111ab5ea760
+# ╠═215a3d40-b740-4331-b98c-e9eb120ed83b
+# ╠═96b79d90-353d-4461-8027-b1698202b7b9
+# ╟─0cc82603-dbda-475c-a0ba-39afefc94c0d
+# ╟─a458e909-4af7-42fb-9bfb-e588b348f4fc
+# ╠═e76e5b34-70ef-4a16-b400-c44cc9f59ddc
+# ╠═4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
+# ╠═0848edf2-6a25-4697-ade0-e76968dd5146
+# ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6

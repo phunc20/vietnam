@@ -101,12 +101,12 @@ rank(c::Card) = c.value >>> 2
 
 function Base.show(io::IO, c::Card)
   r = rank(c)
-  if 1 ≤ r ≤ 14
+  if 1 ≤ r ≤ 15
     r == 10 && print(io, '1')
-    print(io, "1234567890JQKA"[r])
-  else
+    print(io, "ab34567890JQKA2"[r])
+  #else
     #print(io, '\U1f0cf')
-    print(io, '2')
+    #print(io, 'B')
   end
   print(io, suit(c))
 end
@@ -133,6 +133,17 @@ end
 
 """
 Represent a hand (set) of cards using a `UInt64` bit set.
+
+There are 4 suits and 16 ranks, so UInt64 should be enough
+to represent all cards.
+
+註釋.
+以下的 code 可能最好前後前後反覆索引, 不然不容易讀懂,
+因爲前面的 code 時常會用到後面定義的東西.
+
+大致的概念是作者打算節省訊息量, 只把手牌存在一個 UInt64
+裏, 然後作者重新特製定義了如何 loop 過一副手牌, 這些都得
+要寫 code 來 customize.
 """
 struct Hand <: AbstractSet{Card}
   cards::UInt64
@@ -140,10 +151,18 @@ struct Hand <: AbstractSet{Card}
 end
 
 bit(c::Card) = one(UInt64) << c.value
+# Note.
+#   one(UInt64) equals 0x0000_0000_0000_0001
+#   c.value is in [0, 2⁶-1]
+#   The return value are always all 0's with only one 1
 bits(s::Suit) = UInt64(0xffff) << 16(s.i)
 # Note.
-# - 16(k) in Julia simply equals 16*k
+#   16(k) in Julia simply equals 16*k. 16k is the same.
+#   相當於十六個 1 每次往左移動十六格, 或十六的倍數格.
 
+# From the next function, we can see that Karpinski's original design logic was
+# each bit is like a flag for each card, 1 => exists, 0 => not exist
+# So that Hand(0xffff_ffff_ffff_ffff) has all 64 cards in one hand, and Hand(UInt64(0)) has no card
 function Hand(cards)
   hand = Hand(zero(UInt64))
   for card in cards
@@ -156,30 +175,42 @@ function Hand(cards)
 end
 
 Base.in(c::Card, h::Hand) = (bit(c) & h.cards) != 0
+#Base.in(r::UInt8, h::Hand) = any([in(Card(r, s), h) for s in suits])
+Base.in(r::Integer, h::Hand) = any([in(Card(r, s), h) for s in suits])
+
 Base.length(h::Hand) = count_ones(h.cards)
 Base.isempty(h::Hand) = h.cards == 0
 Base.lastindex(h::Hand) = length(h)
 
+# https://docs.julialang.org/en/v1/manual/interfaces/
+# Julia's Base.iterate is somewhat analogous to Python's generator
 function Base.iterate(h::Hand, s::UInt8 = trailing_zeros(h.cards) % UInt8)
+  # by def, s in [0, 64]. Indeed,
+  # trailing_zeros(typemax(UInt64)) equals 0
+  # trailing_zeros(zero(UInt64)) equals 64
   (h.cards >>> s) == 0 && return nothing
   c = Card(s); s += true
+  # s += 1 converts s to Int64
+  # s += true has the same value as s += 1 but stay in UInt8
   c, s + trailing_zeros(h.cards >>> s) % UInt8
 end
 
 function Base.unsafe_getindex(h::Hand, i::UInt8)
   # initialize
-  card, s = 0x0, 0x5
+  value, s = 0x0, 0x5  # of type UInt8
+  # We see that the next loop always runs 5 times, where 5 equals s
   while true
-    mask = 0xffff_ffff_ffff_ffff >> (0x40 - (0x1<<s) - card)
-    card += UInt8(i > count_ones(h.cards & mask) % UInt8) << s
+    mask = 0xffff_ffff_ffff_ffff >> (0x40 - (0x1<<s) - value)
+    value += UInt8(i > count_ones(h.cards & mask) % UInt8) << s
     s > 0 || break
     s -= 0x1
   end
-  return Card(card)
+  return Card(value)
 end
 Base.unsafe_getindex(h::Hand, i::Integer) = Base.unsafe_getindex(h, i % UInt8)
 
 function Base.getindex(h::Hand, i::Integer)
+  # https://docs.julialang.org/en/v1/devdocs/boundscheck/
   @boundscheck 1 ≤ i ≤ length(h) || throw(BoundsError(h,i))
   return Base.unsafe_getindex(h, i)
 end
@@ -212,10 +243,12 @@ function Base.show(io::IO, hand::Hand)
   end
 end
 
+# | infix operator is like adding two hands, one card to a hand
 a::Hand | b::Hand = Hand(a.cards | b.cards)
 a::Hand | c::Card = Hand(a.cards | bit(c))
 c::Card | h::Hand = h | c
 
+# & infix operator is like common card btw two hands, one hand and a suit
 a::Hand & b::Hand = Hand(a.cards & b.cards)
 h::Hand & s::Suit = Hand(h.cards & bits(s))
 s::Suit & h::Hand = h & s

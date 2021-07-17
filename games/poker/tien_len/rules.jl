@@ -9,16 +9,17 @@ begin
   using Pkg
   # .julia_env/ is in the root dir of this repo
   Pkg.activate("../../../../.julia_env/oft")
-  #Pkg.add("PlutoUI")
+  #Pkg.add("DataStructures")
   using PlutoUI
   #using Cards
   #using TikzPictures
+  #using DataStructures: SortedDict
 end
 
 # ╔═╡ e2fe9812-e3e8-11eb-1c29-a76d35861730
 md"""
 # Tiến Lên
-**Tiến lên** 是越南的撲克牌遊戲, 規則跟臺灣的 **大老二** 大致相似.
+[Tiến lên](https://en.wikipedia.org/wiki/Ti%E1%BA%BFn_l%C3%AAn#Instant_wins_(vi:_t%E1%BB%9Bi_tr%E1%BA%AFng)) 是越南的撲克牌遊戲, 規則跟臺灣的 [大老二](https://en.wikipedia.org/wiki/Big_two) 大致相似.
 
 不過, 越南坊間有各式各樣不盡相同的小規則, 就連最一般的規則還是跟臺灣習慣的有所出入,
 所以對於初來乍到的臺灣人, 如果不仔細弄清楚規則的話, 可能一開始還是會免不了連輸數局.
@@ -33,6 +34,13 @@ md"""
 - 每人發 `13` 張牌, 不管玩家數目多少
 - 花色的大小順序 (跟臺灣相當不同) 如下: `♡ > ♢ > ♣ > ♠`, 以越南語的叫法就是 `cơ > rô > chuồn > bích`
 
+> **Fun Facts.**
+>
+> 越南撲克牌的命名乍看/聽之下蠻奇怪的, 但其實是受到法文的影響, 比如說
+>
+> - `cơ ≈ cœur`
+> - `rô = ca-rô ≈ carreau`
+> - `bích ≈ pique`
 
 以下我們會做一些機率上的運算, 爲方便說明, 如果不特別明說, 都是假定四個玩家的情形作討論.
 """
@@ -142,7 +150,7 @@ md"""
 
 """
 
-# ╔═╡ e5c3b77c-4ee0-40ad-a5cb-fac52bc89660
+# ╔═╡ fe2c0caf-4a95-4aae-add4-ef0727cb8540
 md"""
 ```math
 \begin{align}
@@ -151,20 +159,99 @@ md"""
     \begin{pmatrix} 13 \\ 6 \end{pmatrix}
     \cdot
     \begin{pmatrix} 4 \\ 2 \end{pmatrix}^6
-  }
-  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} =
-  \frac{
-    \begin{pmatrix} 13 \\ 6 \end{pmatrix}
     \cdot
-    6^6
+    \begin{pmatrix} 7 \\ 1 \end{pmatrix}
+    \cdot
+    \begin{pmatrix} 4 \\ 1 \end{pmatrix} +
+
+    \begin{pmatrix} 13 \\ 5 \end{pmatrix}
+    \cdot
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}^5
+    \cdot
+    \begin{pmatrix} 8 \\ 1 \end{pmatrix}
+    \cdot
+    \begin{pmatrix} 4 \\ 3 \end{pmatrix}
   }
   {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} \\
 
+  &=
+  \frac{
+    \begin{pmatrix} 13 \\ 6 \end{pmatrix}
+    \cdot
+    6^5
+    \cdot
+    \left(
+      6 \cdot 7 \cdot 4 +
+      8 \cdot 4
+    \right)
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} =
+
+  \frac{
+    \begin{pmatrix} 13 \\ 6 \end{pmatrix}
+    \cdot
+    6^5
+    \cdot
+    200
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}}
+  \\
+  \\
+
   \mathbb{P}(\text{六對}) &=
+
   \mathbb{P}(\text{六對不重複}) +
 
+
+  \frac{
+    \begin{pmatrix} 13 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 12 \\ 4 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}^4
+    \begin{pmatrix} 8 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 1 \end{pmatrix} +
+
+    \begin{pmatrix} 13 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 12 \\ 3 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}^3
+    \begin{pmatrix} 9 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 3 \end{pmatrix}
+  }
+{\begin{pmatrix} 52 \\ 13 \end{pmatrix}} \\ &\qquad\qquad\qquad\quad\;\;+
+
+  \frac{
+    \begin{pmatrix} 13 \\ 2 \end{pmatrix}
+    \begin{pmatrix} 11 \\ 2 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}^2
+    \begin{pmatrix} 9 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 1 \end{pmatrix} +
+
+    \begin{pmatrix} 13 \\ 2 \end{pmatrix}
+    \begin{pmatrix} 11 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 2 \end{pmatrix}
+    \begin{pmatrix} 10 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 3 \end{pmatrix}
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}} \\ &\qquad\qquad\qquad\quad\;\;+
+
+  \frac{
+    \begin{pmatrix} 13 \\ 3 \end{pmatrix}
+    \begin{pmatrix} 10 \\ 1 \end{pmatrix}
+    \begin{pmatrix} 4 \\ 1 \end{pmatrix}
+  }
+  {\begin{pmatrix} 52 \\ 13 \end{pmatrix}}
 \end{align}
 ```
+
+**註.**$(HTML("<br>"))
+上面我想到的算法其實有點複雜, 暫時也還沒有想到別的簡潔的算法. 讓我稍微註釋以下上面使用的算法:
+
+- ``\mathbb{P}(\text{六對不重複})\,.`` $(HTML("<br>"))我試着在找出六對以後, 將情形分成兩種. 這也是爲什麼我們看到分子會是兩個項相加的原因.
+    01. 最後一張是一張數字完全不同於前面十二張的牌
+    02. 最後一張是一張數字相同於前面十二張裏的某張牌
+- ``\mathbb{P}(\text{六對})\,.`` $(HTML("<br>"))算法和上述雷同. 值得留意的點或許是, 只存在以下三種情境:
+    - 只有 **一個數字** 四張花色全部被選中, 這樣就已經有兩對了. 剩下四對和單張.
+    - 有 **兩個數字** 四張花色全部被選中, 這樣就已經有四對了. 剩下兩對和單張.
+    - 有 **三個數字** 四張花色全部被選中, 這樣就已經有六對了. 剩下單張.
 """
 
 # ╔═╡ d8ac100f-0ea1-4ed4-949d-23adc12ff13d
@@ -188,7 +275,7 @@ typeof(prod(1:10))
 md"""
 **註.**$(HTML("<br>"))
 上面第一個 implementation (i.e. `choose` 函數的第一行) 看似
-**_天真無邪_**, 甚至 **_正確_**. $(HTML("<br>"))
+**天真無邪**. $(HTML("<br>"))
 實際上, 卻是一個重大的 bug 來源.
 
 原因是
@@ -243,7 +330,10 @@ prod(48:-1:49-8), prod(big(48):-1:big(49-8))
 
 # ╔═╡ 83219d9d-7628-436b-b858-8ba324c0cfdd
 md"""
-看上去這個樣子, 對於 ``\mathbb{P}(\text{四張 2})`` 的計算, 只有 ``52 \cdot 51 \cdot \;\cdots\; \cdot 40`` 被 overflow 而已
+看上去這個樣子, 對於 ``\mathbb{P}(\text{四張 2})`` 的計算, 只有 ``52 \cdot 51 \cdot \;\cdots\; \cdot 40`` 被 overflow 而已.
+
+讓我們試着用數值方法檢查 `prod(52:-1:52-12)` 是否真的是 `prod(big(52):-1:big(52-12))`
+循環回來的那個數.
 """
 
 # ╔═╡ 700d4846-70bc-46e8-99a9-a111ab5ea760
@@ -263,10 +353,13 @@ end
 
 # ╔═╡ 0cc82603-dbda-475c-a0ba-39afefc94c0d
 md"""
-上面我們使用數值方法證明 overflow, 這裏我們再試着用數學看看估計不估計得出一致的結果:
+所以, 的確, `prod(52:-1:52-12)` 是 `prod(big(52):-1:big(52-12))` overflow
+循環回來的那個數.
+
+上面我們使用數值方法證明 overflow. 這裏我們再試着用數學看看估計不估計得出一致的結果.
 
 ```math
-52\cdot 51\cdot \;\cdots\; \cdot 41 \cdot 40 \ge
+\underbrace{52\cdot 51\cdot \;\cdots\; \cdot 41 \cdot 40}_{13\;\text{個}}\, \ge
 40^{13} \ge
 32^{13} =
 (2^{5})^{13} =
@@ -275,23 +368,58 @@ md"""
 ```
 
 這個簡略的估計使我們看到確實 overflow 有發生.
+
+在 `choose` 的第二個 implementation 裏, 我們利用常規的方法迴避了這個 overflow 的麻煩
+> 我們把戰場拉到 `Float64` 裏, 比較不容易 overflow, 而且我們讓除法能夠儘早發生, 把數字變小讓精準度提升 (因爲 floating-point numbers 數字越小越密集).
 """
+
+# ╔═╡ 796a1def-f815-4824-a96c-12ed194e8274
+typemax(Float64), prevfloat(typemax(Float64)), typemax(Int64), typemax(UInt64)
 
 # ╔═╡ a458e909-4af7-42fb-9bfb-e588b348f4fc
 md"""
-讓我們繼續對於 ``\mathbb{P}(\text{六對(不重複)})`` 的計算:
+讓我們繼續對於 ``\mathbb{P}(\text{六對(不重複)})`` 的計算.
+
+因爲上面計算出來的表示式數字有點醜,
+所以我們仰賴於電腦來告訴我們結果是多少:
 """
 
-# ╔═╡ e76e5b34-70ef-4a16-b400-c44cc9f59ddc
-六對 = 
-
 # ╔═╡ 4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
-六對不重複 = (choose(13, 6) * 6^6) / choose(52, 13)
+六對不重複 = (choose(13, 6) * 6^5 * 200) / choose(52, 13)
+
+# ╔═╡ 99e83361-ffb3-44bf-8d44-b6c3df96f716
+begin
+  denom1 = 13*choose(12,4)*(6^4)*8*4 + 13*choose(12,3)*(6^3)*9*4
+  denom2 = choose(13,2)*choose(11,2)*(6^4)*9*4 + choose(13,2)*choose(11,1)*(6)*10*4
+  denom3 = choose(13,3)*10*4
+  # Note that the following two computations give the same result
+  六對 = 六對不重複 + (denom1 + denom2 + denom3) / choose(52, 13)
+  #六對 = 六對不重複 + denom1/choose(52, 13) + denom2/choose(52, 13) + denom3/choose(52, 13)
+end
 
 # ╔═╡ 0848edf2-6a25-4697-ade0-e76968dd5146
-sort
+# sort(Dict(
+#   "四張2" => 四張2,
+#   "順子" => 順子,
+#   "六對" => 六對,
+# ))
 
 # ╔═╡ e4cb72c1-be43-45bb-85b6-2c5b507d40a6
+# # NamedTuple
+# sort((
+#   四 = 四張2,
+#   順 = 順子,
+#   六 = 六對,
+# ))
+
+# ╔═╡ 39aede8d-c83d-4211-a2f0-67da45919e99
+sort(collect(Dict(
+  "四張2" => 四張2,
+  "順子" => 順子,
+  "六對" => 六對,
+)), by=x->x[2])
+
+# ╔═╡ 56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06
 
 
 # ╔═╡ Cell order:
@@ -308,12 +436,12 @@ sort
 # ╟─4ffd7300-bc5c-4470-a2b8-997d76ce98a5
 # ╠═a72a674e-e3f7-11eb-14ac-f9526786544d
 # ╟─c3234b24-20ce-4299-8226-d2715bce29ee
-# ╠═e5c3b77c-4ee0-40ad-a5cb-fac52bc89660
+# ╟─fe2c0caf-4a95-4aae-add4-ef0727cb8540
 # ╠═d8ac100f-0ea1-4ed4-949d-23adc12ff13d
 # ╠═e72e1ab8-f5e3-434a-8bb5-3f6a2759e6c9
 # ╠═8c503032-dc96-40eb-b15b-4b7e17582878
-# ╟─fa032329-f986-4981-b19e-38d597788b08
-# ╠═a28716b9-a5b5-42ea-a1c6-9bfb28afcd6a
+# ╠═fa032329-f986-4981-b19e-38d597788b08
+# ╟─a28716b9-a5b5-42ea-a1c6-9bfb28afcd6a
 # ╠═3aa85ef5-70b3-4b1a-a9f0-90621aece45e
 # ╠═98590253-95ec-4c43-9fc2-9fbc74a7e9c9
 # ╟─c15ef6a8-ae04-448d-8aae-9142c6bf9d20
@@ -323,13 +451,16 @@ sort
 # ╠═0d95b3cd-4ed6-4138-9d5b-e57b64c695e0
 # ╠═e42d96d7-2592-4369-9e54-66556f030acd
 # ╠═d4f12300-a6d2-4938-a476-1d9c23d86805
-# ╟─83219d9d-7628-436b-b858-8ba324c0cfdd
+# ╠═83219d9d-7628-436b-b858-8ba324c0cfdd
 # ╠═700d4846-70bc-46e8-99a9-a111ab5ea760
 # ╠═215a3d40-b740-4331-b98c-e9eb120ed83b
 # ╠═96b79d90-353d-4461-8027-b1698202b7b9
 # ╟─0cc82603-dbda-475c-a0ba-39afefc94c0d
+# ╠═796a1def-f815-4824-a96c-12ed194e8274
 # ╟─a458e909-4af7-42fb-9bfb-e588b348f4fc
-# ╠═e76e5b34-70ef-4a16-b400-c44cc9f59ddc
 # ╠═4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
+# ╠═99e83361-ffb3-44bf-8d44-b6c3df96f716
 # ╠═0848edf2-6a25-4697-ade0-e76968dd5146
 # ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6
+# ╠═39aede8d-c83d-4211-a2f0-67da45919e99
+# ╠═56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06

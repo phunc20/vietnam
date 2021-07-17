@@ -16,6 +16,12 @@ begin
   #using DataStructures: SortedDict
 end
 
+# ╔═╡ 81bab1d0-a08e-4809-966c-eff81c21e77b
+begin
+  pushfirst!(LOAD_PATH, ".")
+  using TienLen
+end
+
 # ╔═╡ e2fe9812-e3e8-11eb-1c29-a76d35861730
 md"""
 # Tiến Lên
@@ -417,10 +423,29 @@ sort(collect(Dict(
   "四張2" => 四張2,
   "順子" => 順子,
   "六對" => 六對,
-)), by=x->x[2])
+)), by=pair->pair[2])
+
+# ╔═╡ e12e91ff-862d-49bf-a6b8-a4ced154ced4
+md"""
+## Simulation
+接着我們改寫 Stephan Karpinski 的 [`Cards.jl`](https://github.com/StefanKarpinski/Cards.jl)
+來做 simulation. (改寫後的 Julia script 放在 `./TienLen.jl`)
+"""
 
 # ╔═╡ 56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06
+length(deal()[1])
 
+# ╔═╡ 76dde788-02f2-4f4a-b4c5-9f0f9ee96977
+h1 = deal()[1]
+
+# ╔═╡ 0f6b4256-9472-4279-88ed-1778ab51c7ad
+3 in h1
+
+# ╔═╡ 1dad991f-4234-4bad-aec5-fa9c4768e8da
+3 ∩ h1
+
+# ╔═╡ 8705559b-f595-4d7b-8b7b-669f442608d2
+♡ ∩ h1
 
 # ╔═╡ Cell order:
 # ╠═bf67b80e-e3e6-11eb-203d-2965a14e546f
@@ -463,4 +488,10 @@ sort(collect(Dict(
 # ╠═0848edf2-6a25-4697-ade0-e76968dd5146
 # ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6
 # ╠═39aede8d-c83d-4211-a2f0-67da45919e99
+# ╟─e12e91ff-862d-49bf-a6b8-a4ced154ced4
+# ╠═81bab1d0-a08e-4809-966c-eff81c21e77b
 # ╠═56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06
+# ╠═76dde788-02f2-4f4a-b4c5-9f0f9ee96977
+# ╠═0f6b4256-9472-4279-88ed-1778ab51c7ad
+# ╠═1dad991f-4234-4bad-aec5-fa9c4768e8da
+# ╠═8705559b-f595-4d7b-8b7b-669f442608d2

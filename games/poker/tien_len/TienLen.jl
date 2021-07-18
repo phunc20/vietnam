@@ -1,6 +1,6 @@
 module TienLen
 
-export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, points
+export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, points, suit
 
 import Base: *, |, &
 
@@ -117,6 +117,11 @@ for s in "♣♢♡♠", (r,f) in zip(11:14, "JQKA")
   ss, sc = Symbol(s), Symbol("$f$s")
   @eval (export $sc; const $sc = Card($r,$ss))
 end
+# Did you notice that we did not export cards like 2♢ or 7♡, but only JQKA?
+# The trick Karpinski did here was the defintion above:
+#   *(r::Integer, s::Suit) = Card(r, s)
+# 7♡ will be understood by Julia as 7 times ♡, so he just defines what that means.
+
 
 #function Base.isless(card1::Card, card2::Card)
 #  rank1 = rank(card1)
@@ -154,11 +159,30 @@ bit(c::Card) = one(UInt64) << c.value
 # Note.
 #   one(UInt64) equals 0x0000_0000_0000_0001
 #   c.value is in [0, 2⁶-1]
-#   The return value are always all 0's with only one 1
-bits(s::Suit) = UInt64(0xffff) << 16(s.i)
+#   The return value's binary repr is always all 0's with only one 1
+
+#bits(s::Suit) = UInt64(0xffff) << 16(s.i)
 # Note.
 #   16(k) in Julia simply equals 16*k. 16k is the same.
-#   相當於十六個 1 每次往左移動十六格, 或十六的倍數格.
+#   相當於十六個 1 每次往左移動十六格, 或十六的倍數格
+#   這是原本 Karpinski 的設計. 我們改動了 rank 和 suit 的順序:
+#   spades   = 2⁰ (1 + 2⁴ + 2⁸ + ... + 2⁶⁰)
+#   clubs    = 2¹ (1 + 2⁴ + 2⁸ + ... + 2⁶⁰)
+#   diamonds = 2² (1 + 2⁴ + 2⁸ + ... + 2⁶⁰)
+#   hearts   = 2³ (1 + 2⁴ + 2⁸ + ... + 2⁶⁰)
+const geometric_16 = ((UInt128(2)^(64) - 1) ÷ 15) % UInt64
+bits(s::Suit) = geometric_16 * 2^(s.i)
+
+# We build a similar method for the rank
+bitr(r::Integer) = begin
+  1 ≤ r ≤ 15 || throw(ArgumentError("invalid card rank: $r"))
+  if r == 1
+    r = 14
+  elseif r == 2
+    r = 15
+  end
+  return UInt64(0b1111) << (4*r)
+end
 
 # From the next function, we can see that Karpinski's original design logic was
 # each bit is like a flag for each card, 1 => exists, 0 => not exist
@@ -243,17 +267,23 @@ function Base.show(io::IO, hand::Hand)
   end
 end
 
-# | infix operator is like adding two hands, one card to a hand
+# | infix operator is like adding two hands, or btw one card to a hand
+# or, to put it more simply, it's the **union** (of two hands) or (of one hand and a suit)
 a::Hand | b::Hand = Hand(a.cards | b.cards)
 a::Hand | c::Card = Hand(a.cards | bit(c))
 c::Card | h::Hand = h | c
 
-# & infix operator is like common card btw two hands, one hand and a suit
+# & infix operator is like restricting to common cards btw two hands, or btw one hand and a suit
+# or, to put it more simply, it's the **intersection** (of two hands) or (of one hand and a suit)
 a::Hand & b::Hand = Hand(a.cards & b.cards)
 h::Hand & s::Suit = Hand(h.cards & bits(s))
 s::Suit & h::Hand = h & s
+h::Hand & r::Integer = Hand(h.cards & bitr(r))
+r::Integer & h::Hand = h & r
 
-#Base.intersect(i::Integer, h::Hand) = h & s
+# Karpinski purposefully omitted the definition of intersection of hands,
+# because no need to do so -- Hand's are sets, which already have a method for intersection.
+Base.intersect(r::Integer, h::Hand) = h & r
 Base.intersect(s::Suit, h::Hand) = h & s
 Base.intersect(h::Hand, s::Suit) = intersect(s::Suit, h::Hand) 
 

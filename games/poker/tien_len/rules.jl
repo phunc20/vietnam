@@ -19,7 +19,9 @@ end
 # ╔═╡ 81bab1d0-a08e-4809-966c-eff81c21e77b
 begin
   pushfirst!(LOAD_PATH, ".")
+  Pkg.add("Plots")
   using TienLen
+  using Plots
 end
 
 # ╔═╡ e2fe9812-e3e8-11eb-1c29-a76d35861730
@@ -249,7 +251,7 @@ md"""
 ```
 
 **註.**$(HTML("<br>"))
-上面我想到的算法其實有點複雜, 暫時也還沒有想到別的簡潔的算法. 讓我稍微註釋以下上面使用的算法:
+上面我想到的算法其實有點複雜, 暫時也還沒有想到別的簡潔的算法. 讓我稍微解釋以下上面使用的算法:
 
 - ``\mathbb{P}(\text{六對不重複})\,.`` $(HTML("<br>"))我試着在找出六對以後, 將情形分成兩種. 這也是爲什麼我們看到分子會是兩個項相加的原因.
     01. 最後一張是一張數字完全不同於前面十二張的牌
@@ -447,6 +449,51 @@ h1 = deal()[1]
 # ╔═╡ 8705559b-f595-4d7b-8b7b-669f442608d2
 ♡ ∩ h1
 
+# ╔═╡ 7ca5afdb-4925-4631-acb1-5140105e7c5b
+ones(13)
+
+# ╔═╡ aced68c3-549b-46ee-9ba2-9f67188f9900
+
+
+# ╔═╡ 2867514e-11e3-4616-8f67-9cd5f7adfb22
+
+
+# ╔═╡ 5de54789-c29e-4521-8907-5833b140d2ba
+md"""
+## Some Utility Funcitons
+"""
+
+# ╔═╡ 442d8802-870f-456c-9532-e5a1c3211377
+function annotate_spec(hand::Hand)
+  size = 36
+  pos=:center
+  spec = []
+  for card in hand
+    if TienLen.suit(card) in (♢, ♡)
+      color=:red
+    else
+      color=:black
+    end
+    push!(spec, ("$card", size, color, pos))
+  end
+  return spec
+end
+
+# ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
+# http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
+begin
+  #Plots.default(size=(2000, 1000))
+  annotation = annotate_spec(h1)
+  plot(1:13, 0.5*ones(13), bg=:white,
+       size=(2500, 500),
+       legend=false,
+  )
+  plot!(1:13, 1.5*ones(13), linewidth=10)
+  plot!(1:13, 2.5*ones(13), linewidth=10)
+  annotate!([(i, 1, annotation[i]) for i in 1:13])
+  annotate!([(i, 2, annotation[i]) for i in 1:13])
+end
+
 # ╔═╡ Cell order:
 # ╠═bf67b80e-e3e6-11eb-203d-2965a14e546f
 # ╟─e2fe9812-e3e8-11eb-1c29-a76d35861730
@@ -495,3 +542,9 @@ h1 = deal()[1]
 # ╠═0f6b4256-9472-4279-88ed-1778ab51c7ad
 # ╠═1dad991f-4234-4bad-aec5-fa9c4768e8da
 # ╠═8705559b-f595-4d7b-8b7b-669f442608d2
+# ╠═7ca5afdb-4925-4631-acb1-5140105e7c5b
+# ╠═58d35617-b383-4e2e-8705-083d92c5785d
+# ╠═aced68c3-549b-46ee-9ba2-9f67188f9900
+# ╠═2867514e-11e3-4616-8f67-9cd5f7adfb22
+# ╟─5de54789-c29e-4521-8907-5833b140d2ba
+# ╠═442d8802-870f-456c-9532-e5a1c3211377

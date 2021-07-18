@@ -4,6 +4,15 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        el
+    end
+end
+
 # ╔═╡ bf67b80e-e3e6-11eb-203d-2965a14e546f
 begin
   using Pkg
@@ -19,9 +28,7 @@ end
 # ╔═╡ 81bab1d0-a08e-4809-966c-eff81c21e77b
 begin
   pushfirst!(LOAD_PATH, ".")
-  Pkg.add("Plots")
   using TienLen
-  using Plots
 end
 
 # ╔═╡ e2fe9812-e3e8-11eb-1c29-a76d35861730
@@ -133,7 +140,7 @@ md"""
 Vector(10:-1:7)
 
 # ╔═╡ f9100ef4-e3f4-11eb-1626-2191ee70471d
-順子 = 4^13 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+順子_ = 4^13 / (prod(52:-1:(52-12)) / prod(13:-1:1))
 
 # ╔═╡ 4ffd7300-bc5c-4470-a2b8-997d76ce98a5
 md"""
@@ -142,7 +149,7 @@ md"""
 
 # ╔═╡ a72a674e-e3f7-11eb-14ac-f9526786544d
 # Thồng hoa sảng 同花順
-同花順 = 4 / (prod(52:-1:(52-12)) / prod(13:-1:1))
+同花順_ = 4 / (prod(52:-1:(52-12)) / prod(13:-1:1))
 
 # ╔═╡ c3234b24-20ce-4299-8226-d2715bce29ee
 md"""
@@ -405,6 +412,24 @@ begin
   #六對 = 六對不重複 + denom1/choose(52, 13) + denom2/choose(52, 13) + denom3/choose(52, 13)
 end
 
+# ╔═╡ c3103a5d-8e84-4de9-a2ab-e07e41b8dd41
+md"""
+## Double Check
+因爲 overflow 的憂慮, 我們最好重新檢查前面的機率, 確認沒有算錯.
+"""
+
+# ╔═╡ 630302dc-5b99-4388-aca4-65d5edda9fbf
+順子 = 4^(13) / choose(52,13)
+
+# ╔═╡ 70b8f18b-df61-47d9-a731-733c9a09cbd0
+順子, 順子_
+
+# ╔═╡ 104b7a95-f88c-470f-9a17-f11eda3c2e97
+同花順 = 4 / choose(52,13)
+
+# ╔═╡ 95c66329-c6a8-4852-bfe3-c6cabd3a08fa
+同花順, 同花順_
+
 # ╔═╡ 0848edf2-6a25-4697-ade0-e76968dd5146
 # sort(Dict(
 #   "四張2" => 四張2,
@@ -434,23 +459,79 @@ md"""
 來做 simulation. (改寫後的 Julia script 放在 `./TienLen.jl`)
 """
 
-# ╔═╡ 56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06
-length(deal()[1])
+# ╔═╡ 6489cb93-65dc-4436-8416-b99e3a3df45d
+md"""
+`n_sessions = ` $(@bind n_sessions Slider(1000:1000:1_000_000;
+show_value=true, default=50_000))
+"""
 
-# ╔═╡ 76dde788-02f2-4f4a-b4c5-9f0f9ee96977
-h1 = deal()[1]
+# ╔═╡ 45c43bbf-8b85-4208-aeb6-20d94d3943e5
+hand1 = deal()[1]
 
-# ╔═╡ 0f6b4256-9472-4279-88ed-1778ab51c7ad
-3 in h1
+# ╔═╡ 0735da5d-9ec4-4384-b1ab-7cbd32dbc975
+有順子(hand1)
 
-# ╔═╡ 1dad991f-4234-4bad-aec5-fa9c4768e8da
-3 ∩ h1
+# ╔═╡ 1a63b30d-2419-4cdb-ac2d-8209ff8e93c3
+有順子(Hand(typemax(UInt64)))
 
-# ╔═╡ 8705559b-f595-4d7b-8b7b-669f442608d2
-♡ ∩ h1
+# ╔═╡ bd54bf96-8d88-46e9-91fe-4f9a09ae8fd9
+有順子(Hand([1♠, 2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠, 9♠, 10♠, J♠, Q♠, K♠]))
 
-# ╔═╡ 7ca5afdb-4925-4631-acb1-5140105e7c5b
-ones(13)
+# ╔═╡ 4df8f15f-e401-44e4-b45c-1685a9a493a5
+有順子(Hand([7♠, 8♣, 9♠, 10♠, J♠, Q♠, K♠, 1♣, 2♠, 3♠, 4♠, 5♠, 6♡]))
+
+# ╔═╡ 5bb531bb-359c-41e9-9577-4c60381ddae4
+有順子(Hand([1♠, 2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠, 9♠, 10♠, J♠, Q♠,]))
+
+# ╔═╡ f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
+let
+  print_first_k = 9
+  with_terminal() do
+    n_四張2, n_六對, n_順子 = 0, 0, 0
+    println("Few first results:")
+    for k in 1:n_sessions
+      hand = deal()[1]
+      if k <= print_first_k
+        println("(k = $k) hand = $hand")
+      end
+      if 有四張(hand, 2)
+        n_四張2 += 1
+      elseif 有六對(hand)
+        n_六對 += 1
+      elseif 有順子(hand)
+        n_順子 += 1
+      end
+    end
+    stat = Dict(
+      "n_四張2" => n_四張2,
+      "n_六對" => n_六對,
+      "n_順子" => n_順子,
+    )
+    proba = Dict(
+      "P(四張2)" => n_四張2 / n_sessions,
+      "P(六對)" => n_六對 / n_sessions,
+      "P(順子)" => n_順子 / n_sessions,
+    )
+    println("\nproba =\n$proba")
+    #println("\nstat =\n$stat")
+  end
+end
+
+# ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
+# # http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
+# let
+#   h1 = deal()[1]
+#   #Plots.default(size=(2000, 1000))
+#   annotation = annotate_spec(h1)
+#   plot(1:13, 0.5*ones(13), bg=:white,
+#        size=(2500, 500),
+#        legend=false,
+#   )
+#   plot!(1:13, 1.5*ones(13), linewidth=10)
+#   plot!(1:13, 2.5*ones(13), linewidth=10)
+#   annotate!([(i, 1, annotation[i]) for i in 1:13])
+#   annotate!([(i, 2, annotation[i]) for i in 1:13])
+# end
 
 # ╔═╡ aced68c3-549b-46ee-9ba2-9f67188f9900
 
@@ -479,21 +560,6 @@ function annotate_spec(hand::Hand)
   return spec
 end
 
-# ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
-# http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
-begin
-  #Plots.default(size=(2000, 1000))
-  annotation = annotate_spec(h1)
-  plot(1:13, 0.5*ones(13), bg=:white,
-       size=(2500, 500),
-       legend=false,
-  )
-  plot!(1:13, 1.5*ones(13), linewidth=10)
-  plot!(1:13, 2.5*ones(13), linewidth=10)
-  annotate!([(i, 1, annotation[i]) for i in 1:13])
-  annotate!([(i, 2, annotation[i]) for i in 1:13])
-end
-
 # ╔═╡ Cell order:
 # ╠═bf67b80e-e3e6-11eb-203d-2965a14e546f
 # ╟─e2fe9812-e3e8-11eb-1c29-a76d35861730
@@ -502,7 +568,7 @@ end
 # ╠═ce2c6fd6-e3e8-11eb-1027-7b2798e55261
 # ╠═2354387c-e3f3-11eb-2266-174bd65db60f
 # ╠═cdd68328-e3e8-11eb-2e7b-a7ac3e2dffba
-# ╠═6da55f80-e3f5-11eb-3030-4f365bb9e780
+# ╟─6da55f80-e3f5-11eb-3030-4f365bb9e780
 # ╠═076523e0-e3f5-11eb-14d0-73979c18b332
 # ╠═f9100ef4-e3f4-11eb-1626-2191ee70471d
 # ╟─4ffd7300-bc5c-4470-a2b8-997d76ce98a5
@@ -532,17 +598,24 @@ end
 # ╟─a458e909-4af7-42fb-9bfb-e588b348f4fc
 # ╠═4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
 # ╠═99e83361-ffb3-44bf-8d44-b6c3df96f716
+# ╟─c3103a5d-8e84-4de9-a2ab-e07e41b8dd41
+# ╠═630302dc-5b99-4388-aca4-65d5edda9fbf
+# ╠═70b8f18b-df61-47d9-a731-733c9a09cbd0
+# ╠═104b7a95-f88c-470f-9a17-f11eda3c2e97
+# ╠═95c66329-c6a8-4852-bfe3-c6cabd3a08fa
 # ╠═0848edf2-6a25-4697-ade0-e76968dd5146
 # ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6
 # ╠═39aede8d-c83d-4211-a2f0-67da45919e99
 # ╟─e12e91ff-862d-49bf-a6b8-a4ced154ced4
 # ╠═81bab1d0-a08e-4809-966c-eff81c21e77b
-# ╠═56ab6a3f-3db6-40ce-88a3-b2a49d2b4a06
-# ╠═76dde788-02f2-4f4a-b4c5-9f0f9ee96977
-# ╠═0f6b4256-9472-4279-88ed-1778ab51c7ad
-# ╠═1dad991f-4234-4bad-aec5-fa9c4768e8da
-# ╠═8705559b-f595-4d7b-8b7b-669f442608d2
-# ╠═7ca5afdb-4925-4631-acb1-5140105e7c5b
+# ╠═6489cb93-65dc-4436-8416-b99e3a3df45d
+# ╠═45c43bbf-8b85-4208-aeb6-20d94d3943e5
+# ╠═0735da5d-9ec4-4384-b1ab-7cbd32dbc975
+# ╠═1a63b30d-2419-4cdb-ac2d-8209ff8e93c3
+# ╠═bd54bf96-8d88-46e9-91fe-4f9a09ae8fd9
+# ╠═4df8f15f-e401-44e4-b45c-1685a9a493a5
+# ╠═5bb531bb-359c-41e9-9577-4c60381ddae4
+# ╠═f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
 # ╠═58d35617-b383-4e2e-8705-083d92c5785d
 # ╠═aced68c3-549b-46ee-9ba2-9f67188f9900
 # ╠═2867514e-11e3-4616-8f67-9cd5f7adfb22

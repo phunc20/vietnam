@@ -1,8 +1,9 @@
 module TienLen
 
-export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, points, suit
+export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, points, suit, 有四張, 有六對, 有順子, 有六對_, 有順子_
 
 import Base: *, |, &
+using Random
 
 """
 Encode a suit as a 2-bit value (low bits of a `UInt8`):
@@ -285,7 +286,7 @@ r::Integer & h::Hand = h & r
 # because no need to do so -- Hand's are sets, which already have a method for intersection.
 Base.intersect(r::Integer, h::Hand) = h & r
 Base.intersect(s::Suit, h::Hand) = h & s
-Base.intersect(h::Hand, s::Suit) = intersect(s::Suit, h::Hand) 
+Base.intersect(h::Hand, s::Suit) = intersect(s::Suit, h::Hand)
 
 *(rr::OrdinalRange{<:Integer}, s::Suit) = Hand(Card(r,s) for r in rr)
 ..(r::Integer, c::Card) = (r:rank(c))*suit(c)
@@ -332,6 +333,68 @@ function points(hand::Hand)
     p += (rank-10)*(card in hand)
   end
   return p
+end
+
+function 有四張(h::Hand, r::Integer=2)
+  1 ≤ r ≤ 15 || throw(ArgumentError("invalid card rank: $r"))
+  return length(r ∩ h) == 4
+end
+
+function 有六對(h::Hand)
+  n_pairs = 0
+  for (j, r) in enumerate(shuffle(3:15))
+    if length(r ∩ h) == 4
+      n_pairs += 2
+    elseif length(r ∩ h) >= 2
+      n_pairs += 1
+    end
+    # To collect six pairs, we should at least loop thru three diff ranks
+    if j >= 3 && n_pairs >= 6
+      return true
+    end
+  end
+  return false
+end
+
+## 2nd implementation for the same check as 有六對
+function 有六對_(h::Hand)
+  n_pairs = 0
+  # Random.shuffle
+  #for r in shuffle(3:15)
+  for r in 3:15
+    if length(r ∩ h) == 4
+      n_pairs += 2
+    elseif length(r ∩ h) >= 2
+      n_pairs += 1
+    end
+    # To collect six pairs, we should at least loop thru three diff ranks
+    if r >= 5 && n_pairs >= 6
+      return true
+    end
+  end
+  return false
+end
+
+function 有順子(h::Hand)
+  for r in 3:15
+    #r_4suits = Hand(UInt64(0b1111) << (4*r))
+    r_4suits = UInt64(0b1111) << (4*r)
+    # e.g. when r equals 3, r_4suits is the UInt64
+    # containing all four 3♠♣♢♡
+    if h.cards & r_4suits == 0
+      return false
+    end
+  end
+  return true
+end
+
+## 2nd implementation for the same check as 有順子
+function 有順子_(h::Hand)
+  ranks = Set()
+  for card in h
+    push!(ranks, rank(card))
+  end
+  return length(ranks) == 13
 end
 
 end # TienLen

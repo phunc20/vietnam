@@ -284,7 +284,8 @@ r::Integer & h::Hand = h & r
 
 # Karpinski purposefully omitted the definition of intersection of hands,
 # because no need to do so -- Hand's are sets, which already have a method for intersection.
-Base.intersect(r::Integer, h::Hand) = h & r
+Base.intersect(h::Hand, r::Integer) = h & r
+Base.intersect(r::Integer, h::Hand) = r & h
 Base.intersect(s::Suit, h::Hand) = h & s
 Base.intersect(h::Hand, s::Suit) = intersect(s::Suit, h::Hand)
 
@@ -293,14 +294,20 @@ Base.intersect(h::Hand, s::Suit) = intersect(s::Suit, h::Hand)
 ..(a::Card, b::Card) = suit(a) == suit(b) ? rank(a)..b :
   throw(ArgumentError("card ranges need matching suits: $a vs $b"))
 
-const deck = Hand(Card(r,s) for s in suits for r = 2:14)
+#const deck = Hand(Card(r,s) for s in suits for r = 2:14)
+const deck = Hand(Card(r,s) for s in suits for r = 1:13)
 
 Base.empty(::Type{Hand}) = Hand(zero(UInt64))
 
 @eval Base.rand(::Type{Hand}) = Hand($(deck.cards) & rand(UInt64))
+# Note that we've altered Karpinski's original code, making uniform random on UInt64
+# slightly unsuitable. We need a little adaptation.
+#@eval Base.rand(::Type{Hand}) = Hand($(deck.cards) & rand((one(UInt64) << 12):typemax(UInt64)))
+#@eval Base.rand(::Type{Hand}) = Hand(rand((one(UInt64) << 12):typemax(UInt64)))
 
 function deal!(counts::Vector{<:Integer}, hands::AbstractArray{Hand}, offset::Int=0)
-  for rank = 2:14, suit = 0:3
+  # counts: records the number of cards left to distributed to each hand
+  for rank = 1:13, suit = 0:3
     while true
       hand = rand(1:4)
       if counts[hand] > 0

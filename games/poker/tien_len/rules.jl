@@ -286,8 +286,13 @@ md"""
 # ╔═╡ d8ac100f-0ea1-4ed4-949d-23adc12ff13d
 function choose(n, k)
   #return prod(n:-1:n-k+1) / prod(1:k)
+  #return prod([(n-k+i)/i for i in 1:k])
   return prod([(n-i+1)/i for i in 1:k])
 end
+
+# ╔═╡ 97cbb746-d1df-419d-9878-6cb3fa40d46a
+# (?) Should these be equal? Or one of them is better?
+prod([(52-i+1)/i for i in 1:13]) == prod([(52-13+i)/i for i in 1:13])
 
 # ╔═╡ e72e1ab8-f5e3-434a-8bb5-3f6a2759e6c9
 # A quick unit test for choose(): Pascal triangle
@@ -402,6 +407,9 @@ md"""
 > 我們把戰場拉到 `Float64` 裏, 比較不容易 overflow, 而且我們讓除法能夠儘早發生, 把數字變小讓精準度提升 (因爲 floating-point numbers 數字越小越密集).
 """
 
+# ╔═╡ 3da9bdab-1ef9-43dc-89db-c17c4f23af85
+typeof(choose(52,13))
+
 # ╔═╡ 796a1def-f815-4824-a96c-12ed194e8274
 typemax(Float64), prevfloat(typemax(Float64)), typemax(Int64), typemax(UInt64)
 
@@ -432,6 +440,9 @@ md"""
 因爲 overflow 的憂慮, 我們最好重新檢查前面的機率, 確認沒有算錯.
 """
 
+# ╔═╡ a6e87695-b910-4df5-8be1-98ba0ecf90e4
+typeof(4^(13)), 2^(64) == 4^(32)
+
 # ╔═╡ 630302dc-5b99-4388-aca4-65d5edda9fbf
 順子 = 4^(13) / choose(52,13)
 
@@ -443,6 +454,15 @@ md"""
 
 # ╔═╡ 95c66329-c6a8-4852-bfe3-c6cabd3a08fa
 同花順, 同花順_
+
+# ╔═╡ 87496f61-4838-4b17-a2d7-4217e33798a0
+四張2
+
+# ╔═╡ 59375cf1-4f82-423e-82cb-f53304431ea3
+choose(48, 9) / choose(52, 13)  # double check 四張2
+
+# ╔═╡ e5498409-f170-4fa9-b599-b0c5a6bc0c4b
+prod((10+i)/(49+i) for i in 0:3)  # double check 四張2
 
 # ╔═╡ 0848edf2-6a25-4697-ade0-e76968dd5146
 # sort(Dict(
@@ -475,34 +495,19 @@ md"""
 
 # ╔═╡ 6489cb93-65dc-4436-8416-b99e3a3df45d
 md"""
-`n_sessions = ` $(@bind n_sessions Slider(1000:1000:1_000_000;
+`n_sessions = ` $(@bind n_sessions Slider(1000:1000:10_000_000;
 show_value=true, default=50_000))
 """
 
-# ╔═╡ 45c43bbf-8b85-4208-aeb6-20d94d3943e5
-hand1 = deal()[1]
-
-# ╔═╡ 0735da5d-9ec4-4384-b1ab-7cbd32dbc975
-有順子(hand1)
-
-# ╔═╡ 1a63b30d-2419-4cdb-ac2d-8209ff8e93c3
-有順子(Hand(typemax(UInt64)))
-
-# ╔═╡ bd54bf96-8d88-46e9-91fe-4f9a09ae8fd9
-有順子(Hand([1♠, 2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠, 9♠, 10♠, J♠, Q♠, K♠]))
-
-# ╔═╡ 4df8f15f-e401-44e4-b45c-1685a9a493a5
-有順子(Hand([7♠, 8♣, 9♠, 10♠, J♠, Q♠, K♠, 1♣, 2♠, 3♠, 4♠, 5♠, 6♡]))
-
-# ╔═╡ 5bb531bb-359c-41e9-9577-4c60381ddae4
-有順子(Hand([1♠, 2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠, 9♠, 10♠, J♠, Q♠,]))
+# ╔═╡ 30bacf09-b2ff-4f40-a4c6-20099b997aab
+#有順子(hand1)typeof(n_sessions), typemax(Int64) # ≈ 10^(18)
 
 # ╔═╡ f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
 let
   print_first_k = 9
   with_terminal() do
     n_四張2, n_六對, n_順子 = 0, 0, 0
-    println("Few first results:")
+    println("First few results:")
     for k in 1:n_sessions
       hand = deal()[1]
       if k <= print_first_k
@@ -510,9 +515,11 @@ let
       end
       if 有四張(hand, 2)
         n_四張2 += 1
-      elseif 有六對(hand)
+      end
+      if 有六對(hand)
         n_六對 += 1
-      elseif 有順子(hand)
+      end
+      if 有順子(hand)
         n_順子 += 1
       end
     end
@@ -520,16 +527,20 @@ let
       "n_四張2" => n_四張2,
       "n_六對" => n_六對,
       "n_順子" => n_順子,
+      "n_sessions" => n_sessions,
     )
     proba = Dict(
       "P(四張2)" => n_四張2 / n_sessions,
-      "P(六對)" => n_六對 / n_sessions,
       "P(順子)" => n_順子 / n_sessions,
+      "P(六對)" => n_六對 / n_sessions,
     )
     println("\nproba =\n$proba")
-    #println("\nstat =\n$stat")
+    println("\nstat =\n$stat")
   end
 end
+
+# ╔═╡ a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
+
 
 # ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
 # # http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
@@ -579,7 +590,7 @@ end
 # ╟─e2fe9812-e3e8-11eb-1c29-a76d35861730
 # ╟─3b4e05c2-e3ec-11eb-0505-8bd038210963
 # ╟─ce6f4722-e3e8-11eb-0367-6d8491d5c7ab
-# ╠═ce2c6fd6-e3e8-11eb-1027-7b2798e55261
+# ╟─ce2c6fd6-e3e8-11eb-1027-7b2798e55261
 # ╠═2354387c-e3f3-11eb-2266-174bd65db60f
 # ╠═cdd68328-e3e8-11eb-2e7b-a7ac3e2dffba
 # ╟─6da55f80-e3f5-11eb-3030-4f365bb9e780
@@ -590,9 +601,10 @@ end
 # ╟─c3234b24-20ce-4299-8226-d2715bce29ee
 # ╟─fe2c0caf-4a95-4aae-add4-ef0727cb8540
 # ╠═d8ac100f-0ea1-4ed4-949d-23adc12ff13d
+# ╠═97cbb746-d1df-419d-9878-6cb3fa40d46a
 # ╠═e72e1ab8-f5e3-434a-8bb5-3f6a2759e6c9
 # ╠═8c503032-dc96-40eb-b15b-4b7e17582878
-# ╠═fa032329-f986-4981-b19e-38d597788b08
+# ╟─fa032329-f986-4981-b19e-38d597788b08
 # ╟─a28716b9-a5b5-42ea-a1c6-9bfb28afcd6a
 # ╠═3aa85ef5-70b3-4b1a-a9f0-90621aece45e
 # ╠═98590253-95ec-4c43-9fc2-9fbc74a7e9c9
@@ -608,28 +620,29 @@ end
 # ╠═215a3d40-b740-4331-b98c-e9eb120ed83b
 # ╠═96b79d90-353d-4461-8027-b1698202b7b9
 # ╟─0cc82603-dbda-475c-a0ba-39afefc94c0d
+# ╠═3da9bdab-1ef9-43dc-89db-c17c4f23af85
 # ╠═796a1def-f815-4824-a96c-12ed194e8274
 # ╟─a458e909-4af7-42fb-9bfb-e588b348f4fc
 # ╠═4e8bc40d-4d66-4f40-916e-ffd7f97fcfa4
 # ╠═99e83361-ffb3-44bf-8d44-b6c3df96f716
 # ╟─c3103a5d-8e84-4de9-a2ab-e07e41b8dd41
+# ╠═a6e87695-b910-4df5-8be1-98ba0ecf90e4
 # ╠═630302dc-5b99-4388-aca4-65d5edda9fbf
 # ╠═70b8f18b-df61-47d9-a731-733c9a09cbd0
 # ╠═104b7a95-f88c-470f-9a17-f11eda3c2e97
 # ╠═95c66329-c6a8-4852-bfe3-c6cabd3a08fa
+# ╠═87496f61-4838-4b17-a2d7-4217e33798a0
+# ╠═59375cf1-4f82-423e-82cb-f53304431ea3
+# ╠═e5498409-f170-4fa9-b599-b0c5a6bc0c4b
 # ╠═0848edf2-6a25-4697-ade0-e76968dd5146
 # ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6
 # ╠═39aede8d-c83d-4211-a2f0-67da45919e99
 # ╟─e12e91ff-862d-49bf-a6b8-a4ced154ced4
 # ╠═81bab1d0-a08e-4809-966c-eff81c21e77b
 # ╠═6489cb93-65dc-4436-8416-b99e3a3df45d
-# ╠═45c43bbf-8b85-4208-aeb6-20d94d3943e5
-# ╠═0735da5d-9ec4-4384-b1ab-7cbd32dbc975
-# ╠═1a63b30d-2419-4cdb-ac2d-8209ff8e93c3
-# ╠═bd54bf96-8d88-46e9-91fe-4f9a09ae8fd9
-# ╠═4df8f15f-e401-44e4-b45c-1685a9a493a5
-# ╠═5bb531bb-359c-41e9-9577-4c60381ddae4
+# ╠═30bacf09-b2ff-4f40-a4c6-20099b997aab
 # ╠═f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
+# ╠═a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
 # ╠═58d35617-b383-4e2e-8705-083d92c5785d
 # ╠═aced68c3-549b-46ee-9ba2-9f67188f9900
 # ╠═2867514e-11e3-4616-8f67-9cd5f7adfb22

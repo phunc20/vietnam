@@ -137,6 +137,17 @@ function Base.isless(card1::Card, card2::Card)
   card1.value < card2.value
 end
 
+## In order to do: bar(xtick=Card's)
+#function Base.isless(x::Float64, card::Card)
+#  x < card.value
+#end
+#function Base.isless(card::Card, x::Float64)
+#  card.value < x
+#end
+#function Base.Float64(card::Card)
+#  Float64(card.value)
+#end
+
 """
 Represent a hand (set) of cards using a `UInt64` bit set.
 

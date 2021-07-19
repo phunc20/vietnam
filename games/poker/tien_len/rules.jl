@@ -18,12 +18,13 @@ begin
   using Pkg
   # .julia_env/ is in the root dir of this repo
   Pkg.activate("../../../../.julia_env/oft")
-  #Pkg.add("DataStructures")
-  #Pkg.add("PlutoUI")
-  Pkg.add("Plots")
+  Pkg.add.(["Plots",
+            "StatsBase",
+            "DataStructures",
+  ])
   using PlutoUI
   using Plots
-  #using Cards
+  using StatsBase
   #using TikzPictures
   #using DataStructures: SortedDict
 end
@@ -446,6 +447,11 @@ md"""
 # ╔═╡ a6e87695-b910-4df5-8be1-98ba0ecf90e4
 typeof(4^(13)), 2^(64) == 4^(32)
 
+# ╔═╡ 5899fd98-d4eb-453e-91cf-dce215381909
+md"""
+順子 和 同花順 其實都因爲 overflow 的關係算錯了:
+"""
+
 # ╔═╡ 630302dc-5b99-4388-aca4-65d5edda9fbf
 順子 = 4^(13) / choose(52,13)
 
@@ -467,27 +473,18 @@ choose(48, 9) / choose(52, 13)  # double check 四張2
 # ╔═╡ e5498409-f170-4fa9-b599-b0c5a6bc0c4b
 prod((10+i)/(49+i) for i in 0:3)  # double check 四張2
 
-# ╔═╡ 0848edf2-6a25-4697-ade0-e76968dd5146
-# sort(Dict(
-#   "四張2" => 四張2,
-#   "順子" => 順子,
-#   "六對" => 六對,
-# ))
-
-# ╔═╡ e4cb72c1-be43-45bb-85b6-2c5b507d40a6
-# # NamedTuple
-# sort((
-#   四 = 四張2,
-#   順 = 順子,
-#   六 = 六對,
-# ))
-
 # ╔═╡ 39aede8d-c83d-4211-a2f0-67da45919e99
 sort(collect(Dict(
   "四張2" => 四張2,
   "順子" => 順子,
   "六對" => 六對,
 )), by=pair->pair[2])
+
+# ╔═╡ 8f212e10-524b-4c0b-864e-f15b3d12eb2e
+md"""
+所以理論上, 機率的排序爲
+> ``\mathbb{P}(\text{順子}) < \mathbb{P}(\text{四張 2}) < \mathbb{P}(\text{六對}) \,.``
+"""
 
 # ╔═╡ e12e91ff-862d-49bf-a6b8-a4ced154ced4
 md"""
@@ -498,8 +495,8 @@ md"""
 
 # ╔═╡ 6489cb93-65dc-4436-8416-b99e3a3df45d
 md"""
-`n_sessions = ` $(@bind n_sessions Slider(1000:1000:10_000_000;
-show_value=true, default=50_000))
+`n_sessions = ` $(@bind n_sessions Slider(10:10:10_000_000;
+show_value=true, default=10))
 """
 
 # ╔═╡ 30bacf09-b2ff-4f40-a4c6-20099b997aab
@@ -507,8 +504,12 @@ show_value=true, default=50_000))
 
 # ╔═╡ f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
 begin
-  print_first_k = 9
+  print_first_k = 7
   stat_cards = Dict()
+  for card in TienLen.deck
+    stat_cards[card] = 0
+  end
+  #appeared_cards = Set()
   with_terminal() do
     n_四張2, n_六對, n_順子 = 0, 0, 0
     println("First few results:")
@@ -527,7 +528,9 @@ begin
         n_順子 += 1
       end
       for card in hand
+        #stat_cards[card] = get(stat_cards, card, 0) + 1
         stat_cards[card] = get(stat_cards, card, 0) + 1
+        #push!(appeared_cards, card)
       end
     end
     stat_tới_trắng = Dict(
@@ -550,42 +553,41 @@ begin
   end
 end
 
-# ╔═╡ a0f26e70-e885-11eb-018d-dd512ee198bb
-let
-  plot()
-  for (i, (card, n_occur)) ∈ enumerate(stat_cards)
-    scatter!(i, n_occur)
-  end
+# ╔═╡ 35946182-14a6-40f0-8404-7eba0b94f96c
+begin
+stat_sorted_cards = sort(stat_cards)
+bar(#[(k.value, v) for (k, v) in stat_cards],
+    [(k.value, v) for (k, v) in stat_sorted_cards],
+    alpha=0.5,
+    size=(1000, 400),
+    leg=false,
+    bg=:black,
+    xrotation=60,
+    #xticks=collect(keys(stat_cards)),
+    xticks=(12:1:63, [k for (k, v) in stat_sorted_cards]),
+    #xticks=(12:1:63, [Card(k) for k in UInt8():typemax(UInt8)]),
+    #xticks=["$k" for k in keys(stat_cards)],
+    #xlabel="outcome",
+    #ylabel="number of rolls",
+    xlim=(12-2, 63+1),
+)
+hline!([n_sessions / 52 * 13], ls=:dash, lw=3, c=:red)
 end
+
+# ╔═╡ b9a8cd8b-11af-40f8-8506-706d63f04b36
+stat_cards
+
+# ╔═╡ e0d5924a-9a74-4f7a-a9eb-7483171c6f5c
+
+
+# ╔═╡ 4b17be21-1bda-47d6-80b1-fa0bee2dd3b0
+
+
+# ╔═╡ 8076b3b2-1bfc-4a48-9e9d-5a0275659d88
+
 
 # ╔═╡ a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
-let
-  D = Dict()
-  D[1♡] = 2
-  D[Q♠] = 4
-  D
-  # with_terminal() do
-  #   for (k, v) in D
-  #     println(v)
-  #   end
-  # end
-end
 
-# ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
-# # http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
-# let
-#   h1 = deal()[1]
-#   #Plots.default(size=(2000, 1000))
-#   annotation = annotate_spec(h1)
-#   plot(1:13, 0.5*ones(13), bg=:white,
-#        size=(2500, 500),
-#        legend=false,
-#   )
-#   plot!(1:13, 1.5*ones(13), linewidth=10)
-#   plot!(1:13, 2.5*ones(13), linewidth=10)
-#   annotate!([(i, 1, annotation[i]) for i in 1:13])
-#   annotate!([(i, 2, annotation[i]) for i in 1:13])
-# end
 
 # ╔═╡ aced68c3-549b-46ee-9ba2-9f67188f9900
 
@@ -612,6 +614,22 @@ function annotate_spec(hand::Hand)
     push!(spec, ("$card", size, color, pos))
   end
   return spec
+end
+
+# ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
+# http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
+let
+  h1, h2, _, _ = deal()
+  #Plots.default(size=(2000, 1000))
+  annotation = annotate_spec(h1)
+  plot(1:13, 0.5*ones(13), bg=:white,
+       size=(2500, 500),
+       legend=false,
+  )
+  plot!(1:13, 1.5*ones(13), linewidth=10)
+  plot!(1:13, 2.5*ones(13), linewidth=10)
+  annotate!([(i, 1, annotation[i]) for i in 1:13])
+  annotate!([(i, 2, annotation[i]) for i in 1:13])
 end
 
 # ╔═╡ Cell order:
@@ -644,7 +662,7 @@ end
 # ╠═0d95b3cd-4ed6-4138-9d5b-e57b64c695e0
 # ╠═e42d96d7-2592-4369-9e54-66556f030acd
 # ╠═d4f12300-a6d2-4938-a476-1d9c23d86805
-# ╠═83219d9d-7628-436b-b858-8ba324c0cfdd
+# ╟─83219d9d-7628-436b-b858-8ba324c0cfdd
 # ╠═700d4846-70bc-46e8-99a9-a111ab5ea760
 # ╠═215a3d40-b740-4331-b98c-e9eb120ed83b
 # ╠═96b79d90-353d-4461-8027-b1698202b7b9
@@ -656,6 +674,7 @@ end
 # ╠═99e83361-ffb3-44bf-8d44-b6c3df96f716
 # ╟─c3103a5d-8e84-4de9-a2ab-e07e41b8dd41
 # ╠═a6e87695-b910-4df5-8be1-98ba0ecf90e4
+# ╟─5899fd98-d4eb-453e-91cf-dce215381909
 # ╠═630302dc-5b99-4388-aca4-65d5edda9fbf
 # ╠═70b8f18b-df61-47d9-a731-733c9a09cbd0
 # ╠═104b7a95-f88c-470f-9a17-f11eda3c2e97
@@ -663,15 +682,18 @@ end
 # ╠═87496f61-4838-4b17-a2d7-4217e33798a0
 # ╠═59375cf1-4f82-423e-82cb-f53304431ea3
 # ╠═e5498409-f170-4fa9-b599-b0c5a6bc0c4b
-# ╠═0848edf2-6a25-4697-ade0-e76968dd5146
-# ╠═e4cb72c1-be43-45bb-85b6-2c5b507d40a6
 # ╠═39aede8d-c83d-4211-a2f0-67da45919e99
+# ╟─8f212e10-524b-4c0b-864e-f15b3d12eb2e
 # ╟─e12e91ff-862d-49bf-a6b8-a4ced154ced4
 # ╠═81bab1d0-a08e-4809-966c-eff81c21e77b
-# ╠═6489cb93-65dc-4436-8416-b99e3a3df45d
+# ╟─6489cb93-65dc-4436-8416-b99e3a3df45d
 # ╠═30bacf09-b2ff-4f40-a4c6-20099b997aab
-# ╠═f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
-# ╠═a0f26e70-e885-11eb-018d-dd512ee198bb
+# ╟─f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
+# ╟─35946182-14a6-40f0-8404-7eba0b94f96c
+# ╠═b9a8cd8b-11af-40f8-8506-706d63f04b36
+# ╠═e0d5924a-9a74-4f7a-a9eb-7483171c6f5c
+# ╠═4b17be21-1bda-47d6-80b1-fa0bee2dd3b0
+# ╠═8076b3b2-1bfc-4a48-9e9d-5a0275659d88
 # ╠═a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
 # ╠═58d35617-b383-4e2e-8705-083d92c5785d
 # ╠═aced68c3-549b-46ee-9ba2-9f67188f9900

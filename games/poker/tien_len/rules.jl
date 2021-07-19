@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.15.0
+# v0.15.1
 
 using Markdown
 using InteractiveUtils
@@ -19,7 +19,10 @@ begin
   # .julia_env/ is in the root dir of this repo
   Pkg.activate("../../../../.julia_env/oft")
   #Pkg.add("DataStructures")
+  #Pkg.add("PlutoUI")
+  Pkg.add("Plots")
   using PlutoUI
+  using Plots
   #using Cards
   #using TikzPictures
   #using DataStructures: SortedDict
@@ -54,7 +57,7 @@ md"""
   - 順子從三張到十三張: 可以
   - 比較大小通常只比數值最大的牌的大小和花色而已
 - 終局第四名要付第一名 ``x`` 塊錢, 第三名要付第二名 ``\frac{x}{2}`` 塊錢. ``x`` 多少自己訂.
-- 有個概念叫做 mất vòng, 意思是如果你跳過一次不出牌或是出不了任何牌, 那下一次輪到你時, 除非這一輪所有人都出不了蓋得過牌面上的那張牌, 你會直接被條過, 被剝奪出牌的機會.
+- 有個概念叫做 mất vòng, 意思是如果你跳過一次不出牌或是出不了任何牌, 那下一次輪到你時, 除非這一輪所有人都出不了蓋得過牌面上的那張牌, 你會直接被跳過, 被剝奪出牌的機會.
 - 有下列這些比較特別的牌:
   - 三個連續的對 (ba đôi thông): 這個牌, 如果你的前一張牌是大老二, 輪到你出牌, 你可以把這六張牌一次出出去, 勝過大老二, 還可以額外多贏錢: 如果你殺的是黑色的老二, 則被你殺的玩家該局結束得多付你 ``\frac{x}{2}`` 塊錢; 紅色的老二的話, 則是 多付 ``x`` 塊錢
   - `三個連續的對 (ba đôi thông) < 四張一樣數字的牌 (tứ quý) < 四個連續的對 (bốn đôi thông)`` 這些都和前面說的一樣, 可以殺老二 (chặt heo). 它們的大小順序如上. 特別的是
@@ -503,8 +506,9 @@ show_value=true, default=50_000))
 #有順子(hand1)typeof(n_sessions), typemax(Int64) # ≈ 10^(18)
 
 # ╔═╡ f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
-let
+begin
   print_first_k = 9
+  stat_cards = Dict()
   with_terminal() do
     n_四張2, n_六對, n_順子 = 0, 0, 0
     println("First few results:")
@@ -522,8 +526,11 @@ let
       if 有順子(hand)
         n_順子 += 1
       end
+      for card in hand
+        stat_cards[card] = get(stat_cards, card, 0) + 1
+      end
     end
-    stat = Dict(
+    stat_tới_trắng = Dict(
       "n_四張2" => n_四張2,
       "n_六對" => n_六對,
       "n_順子" => n_順子,
@@ -535,12 +542,34 @@ let
       "P(六對)" => n_六對 / n_sessions,
     )
     println("\nproba =\n$proba")
-    println("\nstat =\n$stat")
+    println("\nstat_tới_trắng =\n$stat_tới_trắng")
+    # for (k, v) in stat_cards
+    #   stat_cards[k] /= n_sessions
+    # end
+    # println("\nstat_cards =\n$stat_cards")
+  end
+end
+
+# ╔═╡ a0f26e70-e885-11eb-018d-dd512ee198bb
+let
+  plot()
+  for (i, (card, n_occur)) ∈ enumerate(stat_cards)
+    scatter!(i, n_occur)
   end
 end
 
 # ╔═╡ a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
-
+let
+  D = Dict()
+  D[1♡] = 2
+  D[Q♠] = 4
+  D
+  # with_terminal() do
+  #   for (k, v) in D
+  #     println(v)
+  #   end
+  # end
+end
 
 # ╔═╡ 58d35617-b383-4e2e-8705-083d92c5785d
 # # http://docs.juliaplots.org/latest/generated/gr/#gr-ref20
@@ -642,6 +671,7 @@ end
 # ╠═6489cb93-65dc-4436-8416-b99e3a3df45d
 # ╠═30bacf09-b2ff-4f40-a4c6-20099b997aab
 # ╠═f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
+# ╠═a0f26e70-e885-11eb-018d-dd512ee198bb
 # ╠═a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
 # ╠═58d35617-b383-4e2e-8705-083d92c5785d
 # ╠═aced68c3-549b-46ee-9ba2-9f67188f9900

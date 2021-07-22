@@ -1,6 +1,6 @@
 module TienLen
 
-export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, points, suit, 有四張, 有六對, 有順子, 有六對_, 有順子_
+export Suit, Card, Hand, ♣, ♢, ♡, ♠, .., deal, deal_, points, suit, 有四張, 有六對, 有順子, 有六對_, 有順子_, deck
 
 import Base: *, |, &
 using Random
@@ -316,22 +316,47 @@ Base.empty(::Type{Hand}) = Hand(zero(UInt64))
 #@eval Base.rand(::Type{Hand}) = Hand($(deck.cards) & rand((one(UInt64) << 12):typemax(UInt64)))
 #@eval Base.rand(::Type{Hand}) = Hand(rand((one(UInt64) << 12):typemax(UInt64)))
 
-function deal!(counts::Vector{<:Integer}, hands::AbstractArray{Hand}, offset::Int=0)
-  # counts: records the number of cards left to distributed to each hand
-  for rank = 1:13, suit = 0:3
-    while true
-      hand = rand(1:4)
-      if counts[hand] > 0
-        counts[hand] -= 1
-        hands[offset + hand] |= Card(rank, suit)
-        break
+function deal!(counts::Vector{<:Integer}, hands::AbstractArray{Hand}, offset::Int=0; karpinski::Bool=true)
+  """
+  args
+    counts
+      records the number of cards left to be distributed to each hand, e.g.
+      fill(13, 4) means that there are 4 hands, each hand still waiting for another 13 cards to arrive.
+    hands
+      is an array of Hand's. This function is inplace
+    offset
+      allows to deal cards to a portion of the players, instead of to every player.
+    karpinski
+      If true, use Karpinski's original way of dealing cards; if false, use phunc20's way.
+      Basically, karpinski's way is to deal the cards in the order of A♡, A♢, A♣, A♠, 2♡, 2♢, 2♣, 2♠, etc.
+      while phunc20's way is to shuffle the cards and just distribute to players 1,2,3,4, periodically.
+
+  return
+    hands: Karpinski still have this method return hands because of the next-up method deal() defined in terms
+           of the current method. Cf. below.
+  """
+  if karpinski
+    #for suit = 0:3, rank = 1:13
+    for rank = 1:13, suit = 0:3
+      while true
+        hand = rand(1:4)
+        if counts[hand] > 0
+          counts[hand] -= 1
+          hands[offset + hand] |= Card(rank, suit)
+          break
+        end
       end
+    end
+  else
+    for ((rank, suit), hand) in zip(shuffle(collect(Iterators.product(1:13, 0:3))), Iterators.cycle(1:4))
+      hands[offset + hand] |= Card(rank, suit)
     end
   end
   return hands
 end
 
-deal() = deal!(fill(13, 4), fill(empty(Hand), 4))
+deal_() = deal!(fill(13, 4), fill(empty(Hand), 4))
+deal() = deal!(fill(13, 4), fill(empty(Hand), 4), karpinski=false)
 
 function deal(n::Int)
   # counts equals a 4-element Array{UInt8,1} of 0x0's

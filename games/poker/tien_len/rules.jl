@@ -33,6 +33,7 @@ end
 begin
   pushfirst!(LOAD_PATH, ".")
   using TienLen
+  using Random
 end
 
 # ╔═╡ e2fe9812-e3e8-11eb-1c29-a76d35861730
@@ -103,7 +104,7 @@ md"""
 
 # ╔═╡ ce2c6fd6-e3e8-11eb-1027-7b2798e55261
 md"""
-**Challenge.** 試着算算看這兩種 tới trắng 的機率分別是多少.
+**Challenge.** 試着算算看以上這幾種 tới trắng 的機率分別是多少.
 
 **Solution.**$(HTML("<br>"))
 如果我們仔細想想, 會發現對於任何一位玩家, 他手上的手牌都像是從一副嶄新的牌組裏掏出來,
@@ -474,7 +475,7 @@ choose(48, 9) / choose(52, 13)  # double check 四張2
 prod((10+i)/(49+i) for i in 0:3)  # double check 四張2
 
 # ╔═╡ 39aede8d-c83d-4211-a2f0-67da45919e99
-sort(collect(Dict(
+theoretical_res = sort(collect(Dict(
   "四張2" => 四張2,
   "順子" => 順子,
   "六對" => 六對,
@@ -496,36 +497,69 @@ md"""
 # ╔═╡ 6489cb93-65dc-4436-8416-b99e3a3df45d
 md"""
 `n_sessions = ` $(@bind n_sessions Slider(10:10:10_000_000;
-show_value=true, default=10))
+show_value=true, default=500_000))
 """
 
 # ╔═╡ 30bacf09-b2ff-4f40-a4c6-20099b997aab
-#有順子(hand1)typeof(n_sessions), typemax(Int64) # ≈ 10^(18)
+#typeof(n_sessions), typemax(Int64) # ≈ 10^(18)
+
+# ╔═╡ 6e3c923a-f641-408e-8798-3063a62bad87
+theoretical_res
+
+# ╔═╡ b4b3460f-3107-4ea9-92b6-46f01ec8c1ac
+md"""
+> **理論值 `theoretical_res` 和 實驗值 `simulated_res_` 完全不像 !!!**
+
+**(?)** 怎麼一回事? 上面的 `bar plot` 顯示的是固定一玩家經過 `n_sessions` 後, 所拿到的手牌的統計. 看起來每張牌被拿到的機率是相等的啊.
+
+原來是 `deal_` method 照原本 Karpinski 的 code, 發牌的順序是
+```
+A♡, A♢, A♣, A♠, 2♡, 2♢, 2♣, 2♠, 3♡, 3♢, 3♣, 3♠, etc.
+```
+雖然亂數決定是誰拿到哪一張牌, 但是, 比如說, 四張 2, 全落到某一個人的手上的機率是
+```math
+  \left(\frac{1}{4}\right)^4 = \frac{1}{256} = 0.00390625\,.
+```
+這跟上面 `simulated_res_` 吻合.
+
+我們接着改變這個發牌的順序, 變成真的洗牌, 然後按照順序 玩家1, 玩家2, 玩家3, 玩家4 這樣重複發下去, 換句話說, 就是跟我們所習慣的玩法一致.
+"""
+
+# ╔═╡ 2351edeb-bb57-4dee-bcba-d2cc0de4b2af
+theoretical_res
 
 # ╔═╡ f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
 begin
-  print_first_k = 7
+  print_first_k = 3
   stat_cards = Dict()
-  for card in TienLen.deck
+  for card in deck
     stat_cards[card] = 0
   end
   #appeared_cards = Set()
   with_terminal() do
-    n_四張2, n_六對, n_順子 = 0, 0, 0
+    println("phunc20's deal()")
+    n_四張2, n_六對, n_順子, n_tới_trắng = 0, 0, 0, 0
     println("First few results:")
     for k in 1:n_sessions
       hand = deal()[1]
       if k <= print_first_k
         println("(k = $k) hand = $hand")
       end
+      flag = false
       if 有四張(hand, 2)
         n_四張2 += 1
+        flag = true
       end
       if 有六對(hand)
         n_六對 += 1
+        flag = true
       end
       if 有順子(hand)
         n_順子 += 1
+        flag = true
+      end
+      if flag
+        n_tới_trắng += 1
       end
       for card in hand
         #stat_cards[card] = get(stat_cards, card, 0) + 1
@@ -533,24 +567,93 @@ begin
         #push!(appeared_cards, card)
       end
     end
-    stat_tới_trắng = Dict(
-      "n_四張2" => n_四張2,
-      "n_六對" => n_六對,
-      "n_順子" => n_順子,
-      "n_sessions" => n_sessions,
-    )
+    # stat_tới_trắng = Dict(
+    #   "n_四張2" => n_四張2,
+    #   "n_六對" => n_六對,
+    #   "n_順子" => n_順子,
+    # )
     proba = Dict(
       "P(四張2)" => n_四張2 / n_sessions,
       "P(順子)" => n_順子 / n_sessions,
       "P(六對)" => n_六對 / n_sessions,
+      "P(tới trắng)" => n_tới_trắng / n_sessions,
     )
-    println("\nproba =\n$proba")
-    println("\nstat_tới_trắng =\n$stat_tới_trắng")
-    # for (k, v) in stat_cards
-    #   stat_cards[k] /= n_sessions
-    # end
-    # println("\nstat_cards =\n$stat_cards")
+    simulated_res = sort(collect(proba), by=pair->pair[2])
+    #println("\nproba =\n$proba")
+    println("\nsimulated_res =\n$simulated_res")
+    println("n_sessions = $n_sessions")
+    # println("\nstat_tới_trắng =\n$stat_tới_trắng")
   end
+end
+
+# ╔═╡ 424f1b26-43ba-45a3-b5da-2e8becf01fcb
+begin
+  print_first_k_ = 3
+  stat_cards_ = Dict()
+  for card in deck
+    stat_cards_[card] = 0
+  end
+  with_terminal() do
+    println("Karpinski's deal()")
+    n_四張2_, n_六對_, n_順子_, n_tới_trắng_ = 0, 0, 0, 0
+    println("First few results:")
+    for k in 1:n_sessions
+      hand = deal_()[1]
+      if k <= print_first_k
+        println("(k = $k) hand = $hand")
+      end
+      flag = false
+      if 有四張(hand, 2)
+        n_四張2_ += 1
+        flag = true
+      end
+      if 有六對(hand)
+        n_六對_ += 1
+        flag = true
+      end
+      if 有順子(hand)
+        n_順子_ += 1
+        flag = true
+      end
+      if flag
+        n_tới_trắng_ += 1
+      end
+      for card in hand
+        stat_cards_[card] = get(stat_cards_, card, 0) + 1
+      end
+    end
+    # stat_tới_trắng = Dict(
+    #   "n_四張2" => n_四張2,
+    #   "n_六對" => n_六對,
+    #   "n_順子" => n_順子,
+    # )
+    proba_ = Dict(
+      "P(四張2)" => n_四張2_ / n_sessions,
+      "P(順子)" => n_順子_ / n_sessions,
+      "P(六對)" => n_六對_ / n_sessions,
+      "P(tới trắng)" => n_tới_trắng_ / n_sessions,
+    )
+    simulated_res_ = sort(collect(proba_), by=pair->pair[2])
+    #println("\nproba =\n$proba")
+    # println("\nstat_tới_trắng =\n$stat_tới_trắng")
+    println("\nsimulated_res_ =\n$simulated_res_")
+    println("n_sessions = $n_sessions")
+  end
+end
+
+# ╔═╡ 1c1dcbd7-56d1-404a-9af8-5cce16127971
+begin
+  stat_sorted_cards_ = sort(stat_cards_)
+  bar([(k.value, v) for (k, v) in stat_sorted_cards_],
+      alpha=0.5,
+      size=(1000, 400),
+      leg=false,
+      bg=:black,
+      xrotation=60,
+      xticks=(12:1:63, [k for (k, v) in stat_sorted_cards_]),
+      xlim=(12-2, 63+1),
+  )
+  hline!([n_sessions / 52 * 13], ls=:dash, lw=3, c=:red)
 end
 
 # ╔═╡ 35946182-14a6-40f0-8404-7eba0b94f96c
@@ -575,10 +678,13 @@ hline!([n_sessions / 52 * 13], ls=:dash, lw=3, c=:red)
 end
 
 # ╔═╡ b9a8cd8b-11af-40f8-8506-706d63f04b36
-stat_cards
+# stat_cards
 
 # ╔═╡ e0d5924a-9a74-4f7a-a9eb-7483171c6f5c
+md"""
+``\mathbb{P}(六對)`` 跟 simulation 的結果差距最大, 所以 ``\mathbb{P}(六對)`` 最有可能算錯.
 
+"""
 
 # ╔═╡ 4b17be21-1bda-47d6-80b1-fa0bee2dd3b0
 
@@ -606,7 +712,7 @@ function annotate_spec(hand::Hand)
   pos=:center
   spec = []
   for card in hand
-    if TienLen.suit(card) in (♢, ♡)
+    if suit(card) in (♢, ♡)
       color=:red
     else
       color=:black
@@ -630,6 +736,13 @@ let
   plot!(1:13, 2.5*ones(13), linewidth=10)
   annotate!([(i, 1, annotation[i]) for i in 1:13])
   annotate!([(i, 2, annotation[i]) for i in 1:13])
+end
+
+# ╔═╡ 42aa7630-8b36-46fc-b087-7b17fabeb1a5
+with_terminal() do
+  for ((r, s), hand) in zip(shuffle(collect(Iterators.product(1:13, 0:3))), Iterators.cycle(1:4))
+    println("$r$(TienLen.suits[s+1]), hand$hand")
+  end
 end
 
 # ╔═╡ Cell order:
@@ -686,12 +799,17 @@ end
 # ╟─8f212e10-524b-4c0b-864e-f15b3d12eb2e
 # ╟─e12e91ff-862d-49bf-a6b8-a4ced154ced4
 # ╠═81bab1d0-a08e-4809-966c-eff81c21e77b
-# ╟─6489cb93-65dc-4436-8416-b99e3a3df45d
+# ╠═6489cb93-65dc-4436-8416-b99e3a3df45d
 # ╠═30bacf09-b2ff-4f40-a4c6-20099b997aab
+# ╠═6e3c923a-f641-408e-8798-3063a62bad87
+# ╟─424f1b26-43ba-45a3-b5da-2e8becf01fcb
+# ╟─1c1dcbd7-56d1-404a-9af8-5cce16127971
+# ╟─b4b3460f-3107-4ea9-92b6-46f01ec8c1ac
+# ╠═2351edeb-bb57-4dee-bcba-d2cc0de4b2af
 # ╟─f5b96e84-2ce6-4b6c-b49c-0a4745a8db2a
 # ╟─35946182-14a6-40f0-8404-7eba0b94f96c
 # ╠═b9a8cd8b-11af-40f8-8506-706d63f04b36
-# ╠═e0d5924a-9a74-4f7a-a9eb-7483171c6f5c
+# ╟─e0d5924a-9a74-4f7a-a9eb-7483171c6f5c
 # ╠═4b17be21-1bda-47d6-80b1-fa0bee2dd3b0
 # ╠═8076b3b2-1bfc-4a48-9e9d-5a0275659d88
 # ╠═a4b81f4b-0b86-450b-9d9e-b9cce46ebf17
@@ -700,3 +818,4 @@ end
 # ╠═2867514e-11e3-4616-8f67-9cd5f7adfb22
 # ╟─5de54789-c29e-4521-8907-5833b140d2ba
 # ╠═442d8802-870f-456c-9532-e5a1c3211377
+# ╠═42aa7630-8b36-46fc-b087-7b17fabeb1a5
